@@ -16,15 +16,9 @@ gene_id<-genedata[,1]
 data<-genedata[,-1]
 data[data=="null"]<-NA
 
-### Checking data type (Not Useful) ####
-
-class(data$GSM1601822)
-is.factor(data$GSM1601822)
-is.numeric(data$GSM1601822)
-as.numeric(as.character(data$GSM1601822))
-genedata1<-read.csv("jointGD.csv",stringsAsFactors=FALSE)
-
+####################################################################
 ### Changing factor data to Numeric Value and replacing NA by 0 ####
+####################################################################
 for(i in 1:length(data))
 {
 data[,i]=as.numeric(as.character(data[,i]))
@@ -32,10 +26,11 @@ data[is.na(data)]<-0
 }
 
 data1=t(data)
-colnames(data1)<-as.character(gene_id) ## there is a better way to transpose dataset 
-                                       ## using 
+colnames(data1)<-as.character(gene_id) 
 
-### Data Merging #####
+####################################################################
+### Data Merging ###################################################
+####################################################################
 
 patient_data=read.csv("repeated_measurement.csv",header=T)
 rownames(data1)<-NULL
@@ -46,7 +41,9 @@ survival_data=survival_data[,-c(1,14)]
 full_data=cbind(complete_data,survival_data)
 write.csv(full_data,"full_data.csv")
 
-### Classifying event occurence ####
+####################################################################
+### Classifying event occurence ####################################
+####################################################################
 
 full_data$date_of_local_relapse =as.Date.factor(full_data$date_of_local_relapse,"%d-%m-%y")
 full_data$date_of_metastatic_disease=as.Date.factor(full_data$date_of_metastatic_disease,"%d-%m-%y")
@@ -135,7 +132,9 @@ newdata1$time=as.factor(newdata1$time)
 
 
 
-###Partition and Cox PH ####
+#################################################################
+### Partition and Cox PH ########################################
+#################################################################
 
 result=c()
 min_result=c()
@@ -203,11 +202,6 @@ positive_gene
 negative_gene
 volatile_gene
 
-
-#glance(fitsurv)
-#r=coxdata1[order(coxdata1$`6Ckine`),]
-
-
 library("qgraph")
 library("psych")
 mydata<-read.csv("C:/ACTREC/ACTREC/Others/nikhil/Nikhil18/Project2/TCGA-TARGET/dataset2/EXP12A.csv",header=TRUE)
@@ -217,7 +211,9 @@ CorMat1 <- cor_auto(mydata1)
 par(mfrow=c(2,2))
 Graph_pcor <- qgraph(CorMat1, graph = "pcor", layout = "spring")
 
-### Data preparation for frailty ####
+##################################################################
+### Data preparation for frailty #################################
+##################################################################
 
 indi=function(value){
   p=range(value)
@@ -246,7 +242,9 @@ for(i in 4:510)
   #fdata=rbind(fdata,frailty_data)
 }
 
-### AFT frailty model #####
+#########################################################
+### AFT frailty model ###################################
+#########################################################
 
 fdata=data.frame()
 for(i in 4:510)
@@ -271,7 +269,6 @@ t=unique(fdata$gene)
 for(i in 1:length(t))
 {
   fraildata=fdata[fdata$gene==t[i],]
-  #fraildata=fraildata[,-4]
   jm<-jointmodeling(Model="mean",RespDist = "AFT", Link = "log", LinPred = "constant", 
                RandDist = NULL)
   coxjm<-frailtyHL(Surv(duration,event)~expression+(1|patient),fraildata,RandDist = "Gamma",
@@ -280,7 +277,10 @@ for(i in 1:length(t))
   
 }
 
-### AFT frail using R-INLA ####
+########################################################
+### AFT frail using R-INLA #############################
+########################################################
+
 install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(INLA)
 t=unique(fdata$gene)
@@ -298,14 +298,7 @@ for(i in 1:length(t))
   
   formula=inla.surv(duration,event)~expression+f(patient,model="iid")
   gene_frail1=inla(formula,family="weibullsurv",data=fraildata,verbose = T)
-  
-  #formula=inla.surv(duration,event)~expression+f(patient,model="iid",
-  #                                 hyper=list(prec=list(param=c(0.1,0.1))))
-  #gene_weibull=inla(formula,family="weibullsurv",data=fraildata)
-  #round(gene_weibull$summary.fixed,4)
-  #round(gene_weibull$summary.hyper,4)
 }
-q
 pattern<-cbind(unique(fdata$gene_name),q)
 colnames(pattern)<-c("gene_name","gene","intercept","expression","sd_of_random_part")                       
 u=NULL
@@ -339,8 +332,6 @@ y2=pattern[pattern$cluster==2,]$sd_of_random_part
 y3=pattern[pattern$cluster==3,]$sd_of_random_part
 t.test(y1,y2)
 
-median(y3)
-
 r=NULL
 for(i in 1:dim(pattern)[1])
 {
@@ -349,62 +340,10 @@ for(i in 1:dim(pattern)[1])
 }
 pattern=cbind(pattern,r)
 
-########################################################################
-###Practice############
-formula = inla.surv(time, status) ~ age + sex + disease + 
-  f(id, model= "iid", hyper = list(prec = list(param=c(0.1, 0.1))))
-kidney.inla <- inla(formula, family = "weibullsurv", data = kidney)
-
-formula=inla.surv(duration,event)~expression
-mod.surv<-inla(formula,family="coxph",data=fraildata)
-
-library(devtools)
-install_github("julianfaraway/brinla")
-
-longdat <- joint$longitudinal
-survdat <- joint$survival
-
-longdat<-read.csv("longitude_data.csv",header=T)
-survdat<-read.csv("survival_data.csv",header=T)
-n1 <- nrow(longdat)
-n2 <- nrow(survdat)
-y.long <- c(longdat$y, rep(NA, n2))
-
-y.surv <- inla.surv(time = c(rep(NA, n1), survdat$SURVTIME), event = c(rep(NA, n1), survdat$CENSOR))
-Yjoint <- list(y.long, y.surv)
-
-linear.covariate <- data.frame(mu = as.factor(c(rep(1, n1), rep(2, n2))), 
-                               l.TIME = c(longdat$TIME, rep(0, n2)), 
-                               l.TIMEDRUG = c(longdat$TIMEDRUG, rep(0, n2)), 
-                               l.SEX = c(longdat$SEX, rep(0, n2)), 
-                               l.PREVOI = c(longdat$PREVOI, rep(0, n2)), 
-                               l.STRATUM = c(longdat$STRATUM, rep(0, n2)), 
-                               s.DRUG = c(rep(0, n1), survdat$DRUG), 
-                               s.SEX = c(rep(0, n1), survdat$SEX), 
-                               s.PREVOI = c(rep(0,n1), survdat$PREVOI), 
-                               s.STRATUM = c(rep(0, n1), survdat$STRATUM))
-ntime <- length(unique(longdat$TIME))
-
-random.covariate <- list(U11 = c(rep(1:n2, each = ntime),rep(NA, n2)),
-                         U21 = c(rep(n2+(1:n2), each = ntime),rep(NA, n2)), 
-                         U12 = c(rep(NA, n1), 1:n2), U22 = c(rep(NA, n1), n2+(1:n2)), 
-                         U3 = c(rep(NA, n1), 1:n2))
-
-joint.data <- c(linear.covariate,random.covariate)
-joint.data$Y <- Yjoint
-
-formula = Y ~ mu + l.TIME + l.TIMEDRUG + l.SEX + l.PREVOI + l.STRATUM+ s.DRUG + s.SEX + s.PREVOI + s.STRATUM - 1 + 
-f(U11 , model="iid2d", param = c(23,100,100,0), initial = c(-2.7,0.9,-0.22), n=2*n2) + f(U21, l.TIME, copy="U11") +
-  f(U12, copy="U11", fixed= FALSE, param=c(0,0.01), initial = -0.2) + f(U22, copy="U11", fixed = FALSE, param = c(0,0.01), initial = -1.6)
-joint.inla <- inla(formula, family = c("gaussian","exponentialsurv"),data = joint.data, control.compute=list(dic=TRUE))
-round(joint.inla$summary.fixed, 4)
-round(joint.inla$summary.hyper, 4)
-
+############################################################################
+### Joint Modeling-DATA preparation ########################################
 ############################################################################
 
-### Joint Modeling-DATA preparation ####
-
-#fdata1<-fdata[!duplicated(fdata$patient), ]
 fdata1<-cbind(fdata_all,rep(newdata1$t_stage,507))
 colnames(fdata1$`rep(newdata1$t_stage, 507)`)<-"t_stage"
 
@@ -455,14 +394,6 @@ for(i in 4:510)
   linear.covariate <- data.frame(mu = as.factor(c(rep(1, n1), rep(2, n2))), 
                                  l.TIME = c(longdat$time, rep(0, n2)),
                                  l.t_stage=c(longdat[,3],rep(0,n2)))
-  #l.TIMEDRUG = c(longdat$TIMEDRUG, rep(0, n2)), 
-  #l.SEX = c(longdat$SEX, rep(0, n2)), 
-  #l.PREVOI = c(longdat$PREVOI, rep(0, n2)), 
-  #l.STRATUM = c(longdat$STRATUM, rep(0, n2)), 
-  #s.DRUG = c(rep(0, n1), survdat$DRUG), 
-  #s.SEX = c(rep(0, n1), survdat$SEX), 
-  #s.PREVOI = c(rep(0,n1), survdat$PREVOI), 
-  #s.STRATUM = c(rep(0, n1), survdat$STRATUM))
   
   ntime <- length(unique(longdat$time))
   
@@ -481,7 +412,9 @@ for(i in 4:510)
   
 }
 
-### Auto Regressive Model ####
+#############################################################
+### Auto Regressive Model ###################################
+#############################################################
 
 a=as.vector(unique(fdata$gene))
 ar_result=NULL
@@ -548,7 +481,10 @@ for(i in 1:507)
   
   joint.inla <- inla(formula, family = c("gaussian","exponentialsurv"),data = joint.data, control.compute=list(dic=TRUE), verbose = T)
   
-  ### longitudinal part####
+  ##############################################################
+  ### longitudinal part ########################################
+  ##############################################################
+  
   N=41
   Z$U11=Z$patient
   Z$U21=N+Z$patient
@@ -561,19 +497,14 @@ for(i in 1:507)
   mod1 = inla(formula, family = "gaussian", verbose = TRUE, data = Z,
               control.fixed = list(prec = 0.01, prec.intercept = 0.01),
               control.family = list(param =c(0.1,0.1), initial = log(0.345)))
-  ############################
-  #fm<-lm(t2~t1,data=Z)
-  #s=cbind(ar_long$cluster[1],paste(ar_long$gene_name[1]),ar_long$gene[1],round(summary(fm)$sigma, 4))
-  #ar_result=rbind(ar_result,s)
 }
 colnames(ar_result)=c("cluster","gene_name","gene_no","sd_residual")
 fm<-inla(t2~t1+f(patient,model="iid"),family="gaussian",data=Z)
 control.compute = list(dic = TRUE, cpo = TRUE)
 
-
+############################################################################################
 ### Fitting joint model with INLA using 1st and last observation for longitudinal data #####
-
-#i=8,9,16, 19,20,21...  
+############################################################################################
 
 full_data1$sur_duration=full_data1$event_time-full_data1$inclusion_date
 full_data1$event=as.numeric(full_data1$event_time!=full_data1$censoring_date)
@@ -666,7 +597,9 @@ for(i in 1:507)
 }  
 colnames(inla_frailty)=c("gene","mu1_mean","mu2_mean","l.t1_mean","mu1_sd","mu2_sd","l.t1_sd","gaussian_precision_mean","precision_U11_1_mean","precision_U11_2_mean","rho_mean","precision_U3_mean","U12_beta_mean","U22_beta_mean","gaussian_precision_sd","precision_U11_1_sd","precision_U11_2_sd","rho_sd","precision_U3_sd","U12_beta_sd","U22_beta_sd")
 
-### Solo Joint Modeling on one gene ####
+#############################################################
+### Solo Joint Modeling on one gene #########################
+#############################################################
 
 HGF<-read.csv("HGF.csv",header=T)
 x1=NULL
@@ -731,22 +664,9 @@ round(joint.inla$summary.hyper, 4)
 fit.cox.frail<-coxph(Surv(duration,event)~expression,data=fdata[fdata$cluster==1,])
 fit.cox.frail<-coxme(Surv(duration,event)~expression+(1|gene),data=fdata[fdata$cluster==1,])
 
-
-##### practice####
-
-if(pdata$event_time < pdata$censoring_date)
-{
-  for(p in 1:length(pdata$id))
-  {
-    event[p]
-  }
-}else
-{
-  event=0
-}
-###########################
-
-##### false discovery rate #####
+##############################################
+##### false discovery rate ###################
+##############################################
 
 library(questionr)
 library(rowr)
