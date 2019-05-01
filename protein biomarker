@@ -264,19 +264,6 @@ fdata=fdata[fdata[,6]>0,]
 colnames(fdata)<-c("patient","time","gene","gene_name","cluster","expression","duration","event")
 colnames(fdata_all)<-c("patient","time","gene","gene_name","cluster","expression","duration","event")
 
-library(frailtyHL)
-t=unique(fdata$gene)
-for(i in 1:length(t))
-{
-  fraildata=fdata[fdata$gene==t[i],]
-  jm<-jointmodeling(Model="mean",RespDist = "AFT", Link = "log", LinPred = "constant", 
-               RandDist = NULL)
-  coxjm<-frailtyHL(Surv(duration,event)~expression+(1|patient),fraildata,RandDist = "Gamma",
-                   mord=0,dord=2,Maxiter = 200)
-  aftfrail<-mlmfit(jm,data_surv = fraildata,Maxiter = 200)
-  
-}
-
 ########################################################
 ### AFT frailty Model #############################
 ########################################################
