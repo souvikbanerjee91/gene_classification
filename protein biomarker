@@ -278,7 +278,7 @@ for(i in 1:length(t))
 }
 
 ########################################################
-### AFT frail using R-INLA #############################
+### AFT frailty Model #############################
 ########################################################
 
 install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
@@ -295,9 +295,6 @@ for(i in 1:length(t))
   round(summary(gene_frail)$table,4)
   p=cbind(fraildata$gene_name[1],t(gene_frail$coefficients),gene_frail$history$`frailty.gaussian(patient)`$theta)
   q=rbind(q,p)
-  
-  formula=inla.surv(duration,event)~expression+f(patient,model="iid")
-  gene_frail1=inla(formula,family="weibullsurv",data=fraildata,verbose = T)
 }
 pattern<-cbind(unique(fdata$gene_name),q)
 colnames(pattern)<-c("gene_name","gene","intercept","expression","sd_of_random_part")                       
