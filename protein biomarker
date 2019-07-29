@@ -381,7 +381,7 @@ for(i in 1:507)
 colnames(inla_frailty)=c("gene","mu1_mean","mu2_mean","l.t1_mean","mu1_sd","mu2_sd","l.t1_sd","gaussian_precision_mean","precision_U11_1_mean","precision_U11_2_mean","rho_mean","precision_U3_mean","U12_beta_mean","U22_beta_mean","gaussian_precision_sd","precision_U11_1_sd","precision_U11_2_sd","rho_sd","precision_U3_sd","U12_beta_sd","U22_beta_sd")
 
 #############################################################
-### Solo Joint Modeling on one gene #########################
+### Solo Joint Modeling on one gene (HGF) ###################
 #############################################################
 
 HGF<-read.csv("HGF.csv",header=T)
@@ -578,9 +578,8 @@ prog_score=cbind(prog_score,progdata1$duration,progdata1$status)
 colnames(prog_score)=c("pid","prog_score_1","prog_score_2","sum_of_score","duration","status")
 
 ###########################################
-##### Brier Score #########################
+### Brier Score ###########################
 ###########################################
-
 library(pec)
 library(riskRegression)
 
@@ -591,7 +590,6 @@ Models <- list("Cox Model 1"=coxph(Surv(duration,status)~prog_score_1,data=prog_
 
 f<-coxph(Surv(duration,status)~prog_score_1+prog_score_2,data=prog_score,y=TRUE,x=TRUE)
 PredError <- pec(object=Models,formula=Surv(duration,status)~prog_score_1+prog_score_2,data=prog_score,exact=TRUE,cens.model="marginal",splitMethod="none",B=0,verbose=TRUE)
-
 print(PredError,times=seq(5,30,5))
 summary(PredError)
 plot(PredError,xlim=c(0,80),xlab="Days",title="Brier Score")
