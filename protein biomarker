@@ -443,28 +443,155 @@ joint.inla <- inla(formula, family = c("gaussian","exponentialsurv"),data = join
 round(joint.inla$summary.fixed, 4)
 round(joint.inla$summary.hyper, 4)
 
+#####################################################
+#### Prognostic Score ###############################
+#####################################################
 
-fit.cox.frail<-coxph(Surv(duration,event)~expression,data=fdata[fdata$cluster==1,])
-fit.cox.frail<-coxme(Surv(duration,event)~expression+(1|gene),data=fdata[fdata$cluster==1,])
+full_data1$sur_duration=full_data1$event_time-full_data1$inclusion_date
+newdata1=cbind(newdata1,full_data1$sur_duration)
+colnames(newdata1)[dim(newdata1)[2]]=c("sur_duration")
 
-##############################################
-##### false discovery rate ###################
-##############################################
-
-library(questionr)
-library(rowr)
-new_frailty<-read.csv("new_frailty.csv",header=T)
-x=new_frailty[9]
-fdr_data=NULL
-for(i in 10:length(new_frailty))
+result=c()
+min_result_new=c()
+for(i in 4:510)
 {
-  y=new_frailty[i]
-  n11=sum(x==1 & y==1)
-  n12=sum(x==1 & y==2)
-  n21=sum(x==2 & y==1)
-  n22=sum(x==2 & y==2)
-  r=(n11*n22)/(n21*n22)
-  fdr=cbind(colnames(y),n11,n12,n21,n22,r)
-  fdr_data=rbind(fdr_data,fdr)
+  print(i)
+  min_output=data.frame()
+  output_a=data.frame()
+  coxdata=newdata1[newdata1[,i]>0,]
+  t=levels(newdata1$time)
+  
+  coxdata1=coxdata[coxdata$time==t[1],]
+  p=diff(range(coxdata1[,i][coxdata1[,i]>0]))
+  min_value=min(coxdata1[,i][coxdata1[,i]>0])
+  q=quantile(coxdata1[,i][coxdata1[,i]>0],probs = seq(0,1,0.1))
+  output=data.frame()
+  for(j in 2:10)
+    {
+      indicator=c()
+      for(k in 1:length(coxdata1[,i]))
+      {
+        if(coxdata1[k,i]<=q[j])
+        {
+          indicator[k]=0
+        }else
+        {
+          indicator[k]= 1
+        }
+      }
+      coxdata2=cbind(coxdata1,indicator)
+      fitsurv=coxph(Surv(duration_days,event)~indicator,data=coxdata2,x=TRUE,control = coxph.control(iter.max=2000))
+      m=cbind(j,q[j],summary(fitsurv)$coef[,1],glance(fitsurv)$p.value.log)
+      output=rbind(output,m)
+    }
+    min_s=output[output[,4]==min(output[,4]),]
+    min_s=cbind(colnames(coxdata)[i],min_s,p, min_value)
+    min_output=rbind(min_output,min_s)
+  
+  colnames(min_output)<-c("gene_name","partition","threshold","coef","p-value","range","min_value")
+  min_result_new=rbind(min_result_new,min_output)
 }
-colnames(fdr_data)=c("threshold","n11","n12","n21","n22","odds_ratio")
+write.csv(min_result_new,"baseline_cutoff_value.csv")
+
+d=c()
+for(i in 1:length(min_result_new$gene_name))
+{
+  print(i)
+  if(min_result_new$gene_name[i] %in% positive_gene){d[i]=1}
+  if(min_result_new$gene_name[i] %in% negative_gene){d[i]=2}
+  if(min_result_new$gene_name[i] %in% volatile_gene){d[i]=3}
+}
+
+min_result_cluster<-cbind(min_result_new,d)
+
+d1=na.omit(pattern[pattern$cluster==1,])
+d2=na.omit(pattern[pattern$cluster==2,])
+d_positive=d1[d1$sd_of_random_part_aft %in% head(sort(d1$sd_of_random_part_aft),10),]$gene_name
+d_negative=d2[d2$sd_of_random_part_aft %in% head(sort(d2$sd_of_random_part_aft),10),]$gene_name
+
+min_result_cluster_p<-min_result_cluster[min_result_cluster$gene_name %in% d_positive,]
+min_result_cluster_n<-min_result_cluster[min_result_cluster$gene_name %in% d_negative,]
+prog_gene<-rbind(min_result_cluster_p,min_result_cluster_n)
+
+progdata=newdata1[newdata1$time==1,]
+pid=unique(newdata1$patient_id)
+duration=progdata$duration_days
+status<-as.numeric(progdata$date_of_local_relapse !=0 | progdata$date_of_metastatic_disease !=0)
+status<-1-as.numeric(is.na(status))
+
+progdata=progdata[,colnames(progdata) %in% prog_gene$gene_name]
+progdata=cbind(pid,progdata,duration,status)
+HR.result=data.frame()
+for(i in 2:(dim(progdata)[2]-2))
+{
+  pdata=progdata[progdata[,i]>0,]
+  model=coxph(Surv(duration,status)~pdata[,i],data=pdata)
+  prog.result=cbind(colnames(pdata)[i],exp(as.numeric(model$coefficients)))
+  HR.result=rbind(HR.result,prog.result)
+}
+HR.result[,2]=as.numeric(as.character(HR.result[,2]))
+s=sum(HR.result[,2])
+colnames(HR.result)=c("gene_name","HR")
+check_data=merge(prog_gene,HR.result,by="gene_name")
+progdata1<-progdata[apply(progdata[c(2:21)],1,function(z) !any(z==0)),] 
+p_percent=check_data$HR[check_data$d==1]/sum(check_data$HR[check_data$d==1])
+n_percent=(1/check_data$HR[check_data$d==2])/sum(1/check_data$HR[check_data$d==2])
+percent=c(p_percent,n_percent)
+
+gene_name_p=prog_gene$gene_name[prog_gene$d==1]
+gene_name_n=prog_gene$gene_name[prog_gene$d==2]
+gene_name=c(as.character(gene_name_p),as.character(gene_name_n))
+w=cbind(gene_name,percent)
+check_data=merge(check_data,w,by="gene_name")
+check_data$percent=as.numeric(as.character(check_data$percent))
+
+prog_score=c()
+for(i in 1:dim(progdata1)[1])
+{
+  I1=0
+  I2=0
+  for(j in 2:(dim(progdata1)[2]-2))
+  {
+    print(c(i,j))
+    rhat=0
+    shat=0
+    l=colnames(progdata1[j])
+    k=check_data[check_data$gene_name==l,]$percent
+    m=check_data[check_data$gene_name==l,]$coef
+    cl=check_data[check_data$gene_name==l,]$d
+    ran=check_data[check_data$gene_name==l,]$range
+    mi=check_data[check_data$gene_name==l,]$min_value
+    if(cl==1)
+    {
+      r=k*((progdata1[i,j]-mi)/ran)
+      I1=r+I1
+    }else
+    {
+      s=k*((progdata1[i,j]-mi)/ran)
+      I2=s+I2
+    }
+  }
+  g=cbind(progdata1$pid[i],I1,I2,I1+I2)
+  prog_score=rbind(prog_score,g)
+}
+prog_score=cbind(prog_score,progdata1$duration,progdata1$status)
+colnames(prog_score)=c("pid","prog_score_1","prog_score_2","sum_of_score","duration","status")
+
+###########################################
+##### Brier Score #########################
+###########################################
+
+library(pec)
+library(riskRegression)
+
+prog_score=data.frame(prog_score)
+Models <- list("Cox Model 1"=coxph(Surv(duration,status)~prog_score_1,data=prog_score,x=TRUE,y=TRUE),
+               "Cox Model 2"=coxph(Surv(duration,status)~prog_score_2,data=prog_score,x=TRUE,y=TRUE),
+               "Cox Model 3"=coxph(Surv(duration,status)~sum_of_score,data=prog_score,x=TRUE,y=TRUE))
+
+f<-coxph(Surv(duration,status)~prog_score_1+prog_score_2,data=prog_score,y=TRUE,x=TRUE)
+PredError <- pec(object=Models,formula=Surv(duration,status)~prog_score_1+prog_score_2,data=prog_score,exact=TRUE,cens.model="marginal",splitMethod="none",B=0,verbose=TRUE)
+
+print(PredError,times=seq(5,30,5))
+summary(PredError)
+plot(PredError,xlim=c(0,80),xlab="Days",title="Brier Score")
