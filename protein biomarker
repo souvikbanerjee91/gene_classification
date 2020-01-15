@@ -8,6 +8,10 @@ library(INLA)
 library(qgraph)
 library(psych)
 
+###################################################################
+### Data Preparation ##############################################
+###################################################################
+
 genedata<-read.csv("jointGD.csv",header=T)
 dim(genedata)
 genedata<-genedata[-508,]
