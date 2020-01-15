@@ -171,7 +171,7 @@ for(i in 4:510)
       indicator[k]= 1
         }
       }
-    coxdata2=cbind(coxdata1,indicator,frail_id)
+    coxdata2=cbind(coxdata1,indicator)
     fitsurv=coxph(Surv(duration_days,event)~indicator,data=coxdata2,x=TRUE,control = coxph.control(iter.max=2000))
     fit_frail=coxme(Surv(duration_days,event)~indicator+(1|patient_id),data=coxdata2,x=TRUE)
     m=cbind(j,q[j],summary(fitsurv)$coef[,1],glance(fitsurv)$p.value.log,as.numeric(fit_frail$vcoef))
