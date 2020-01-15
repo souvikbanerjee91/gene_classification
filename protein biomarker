@@ -200,12 +200,6 @@ positive_gene
 negative_gene
 volatile_gene
 
-attach(mydata)
-mydata1<-mydata[,1:50]
-mydata<-newdata1[,positive_gene]
-CorMat1 <- cor_auto(mydata)
-Graph_pcor <- qgraph(CorMat1, graph = "pcor", layout = "spring")
-
 ##################################################################
 ### Data preparation for frailty #################################
 ##################################################################
