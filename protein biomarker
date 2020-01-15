@@ -132,8 +132,6 @@ for(i in 1:length(a))
 write.csv(newdata1,"newdata1.csv")  
   
 newdata1$time=as.factor(newdata1$time)
-#new_pid=as.factor(as.numeric(full_data1$patient))
-#full_data1=cbind(full_data1[,1:2],new_pid,full_data1[,3:ncol(full_data1)])
 
 #################################################################
 ### Partition and Cox PH ########################################
@@ -173,8 +171,7 @@ for(i in 4:510)
       }
     coxdata2=cbind(coxdata1,indicator)
     fitsurv=coxph(Surv(duration_days,event)~indicator,data=coxdata2,x=TRUE,control = coxph.control(iter.max=2000))
-    fit_frail=coxme(Surv(duration_days,event)~indicator+(1|patient_id),data=coxdata2,x=TRUE)
-    m=cbind(j,q[j],summary(fitsurv)$coef[,1],glance(fitsurv)$p.value.log,as.numeric(fit_frail$vcoef))
+    m=cbind(j,q[j],summary(fitsurv)$coef[,1],glance(fitsurv)$p.value.log)
     output=rbind(output,m)
     }
   s=cbind(t[l],output)
