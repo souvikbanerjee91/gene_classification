@@ -166,11 +166,9 @@ for(i in 4:510)
       if(coxdata1[k,i]<=q[j])
         {
       indicator[k]=0
-      frail_id[k]=1
         }else
         {
       indicator[k]= 1
-      frail_id[k]=2
         }
       }
     coxdata2=cbind(coxdata1,indicator,frail_id)
@@ -181,12 +179,12 @@ for(i in 4:510)
     }
   s=cbind(t[l],output)
   output1=rbind(output1,s)
-  min_s=cbind(t[l],output[,1][output[,4]==min(output[,4])],output[,2][output[,4]==min(output[,4])],output[,3][output[,4]==min(output[,4])],min(output[,4]),output[,5][output[,4]==min(output[,4])])
+  min_s=cbind(t[l],output[,1][output[,4]==min(output[,4])],output[,2][output[,4]==min(output[,4])],output[,3][output[,4]==min(output[,4])],min(output[,4]))
   min_output1=rbind(min_output1,min_s)
   }
-  colnames(min_output1)<-c("time","partition","threshold",paste("min",colnames(newdata1)[i],"coef",sep='_'),paste("min",colnames(newdata1)[i],"p-value",sep='_'),paste("min",colnames(newdata1)[i],"frailty_var",sep='_'))
+  colnames(min_output1)<-c("time","partition","threshold",paste("min",colnames(newdata1)[i],"coef",sep='_'),paste("min",colnames(newdata1)[i],"p-value",sep='_'))
   min_result=cbind.fill(min_result,min_output1,fill=NA)
-  colnames(output1)<-c("time","partition","threshold",paste(colnames(newdata1)[i],"coef",sep='_'),paste(colnames(newdata1)[i],"p-value",sep='_'),paste("min",colnames(newdata1)[i],"frailty_var",sep='_'))
+  colnames(output1)<-c("time","partition","threshold",paste(colnames(newdata1)[i],"coef",sep='_'),paste(colnames(newdata1)[i],"p-value",sep='_'))
   result=cbind.fill(result,output1,fill=NA)
   if(all(as.numeric(as.character(min_output1[,4]))>0))
     {
