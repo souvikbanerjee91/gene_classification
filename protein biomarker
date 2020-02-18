@@ -277,7 +277,7 @@ hist(pattern[pattern$cluster==3,]$sd_of_random_part_cox,
      breaks=20,xlab="PH_sd_cluster_3",main="Histogram for PH model Cluster 3")
   
 ############################################################################################
-### Fitting joint model with INLA using 1st and last observation for longitudinal data #####
+### Fitting joint model with INLA using auto-regressive type longitudinal model  ###########
 ############################################################################################
 
 full_data1$sur_duration=full_data1$event_time-full_data1$inclusion_date
@@ -371,9 +371,9 @@ for(i in 1:507)
 }  
 colnames(inla_frailty)=c("gene","mu1_mean","mu2_mean","l.t1_mean","mu1_sd","mu2_sd","l.t1_sd","gaussian_precision_mean","precision_U11_1_mean","precision_U11_2_mean","rho_mean","precision_U3_mean","U12_beta_mean","U22_beta_mean","gaussian_precision_sd","precision_U11_1_sd","precision_U11_2_sd","rho_sd","precision_U3_sd","U12_beta_sd","U22_beta_sd")
 
-#############################################################
-### Solo Joint Modeling on one gene (HGF) ###################
-#############################################################
+#######################################################################
+### Solo Joint Modeling on one gene (TGF-beta RIII) using INLA ########
+#######################################################################
 
 HGF<-read.csv("HGF.csv",header=T)
 x1=NULL
@@ -569,7 +569,7 @@ prog_score=cbind(prog_score,progdata1$duration,progdata1$status)
 colnames(prog_score)=c("pid","prog_score_1","prog_score_2","sum_of_score","duration","status")
 
 ###########################################
-### Brier Score ###########################
+### Brier Score & Plot ####################
 ###########################################
 library(pec)
 library(riskRegression)
