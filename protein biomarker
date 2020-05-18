@@ -215,12 +215,13 @@ for(i in 4:510)
   fdata=rbind(fdata,frailty_data)
 }
 
-indx<-sapply(fdata,is.factor)
-fdata[indx-5]<-lapply(fdata[indx-5],function(x) as.numeric(as.character(x)))
 fdata_all=fdata
 fdata=fdata[fdata[,6]>0,]
 colnames(fdata)<-c("patient","time","gene","gene_name","cluster","expression","duration","event")
 colnames(fdata_all)<-c("patient","time","gene","gene_name","cluster","expression","duration","event")
+fdata$expression<-as.numeric(fdata$expression)
+fdata$event<-as.numeric(fdata$event)
+fdata$duration<-as.numeric(fdata$duration)
 
 t=unique(fdata$gene)
 q=data.frame()
